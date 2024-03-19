@@ -73,14 +73,13 @@ async def add_user(user: UserBase, db: db_dependency):
 
 @app.get("/users")
 async def get_users(db: db_dependency):
-    users = (await db.execute(select(User))).scalars().all()
+    users = (await db.scalars(select(User))).all()
     return {"users": users}
 
 
 @app.get("/user")
 async def get_user(id: int, db: db_dependency):
-    user_res = await db.execute(select(User).where(User.id == id))
-    user = user_res.scalar_one()
+    user = await db.scalar_one(select(User).where(User.id == id))
     return user
 
 
