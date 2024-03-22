@@ -21,8 +21,13 @@ from sqlalchemy.ext.asyncio import (
 
 
 URL_DATABASE = "mysql+aiomysql://final:final4188@192.168.168.72/test_case"
-engine = create_async_engine(URL_DATABASE)
-SessionLocal = async_sessionmaker(engine)
+
+# engine = create_async_engine(URL_DATABASE)
+# SessionLocal = async_sessionmaker(engine)
+
+# use pool
+engine = create_async_engine(URL_DATABASE, pool_pre_ping=True, pool_recycle=3600, pool_size=20, max_overflow=40)
+async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -50,13 +55,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-
 async def get_db():
-    db = SessionLocal()
-    try:
+    async with SessionLocal() as db:
         yield db
-    finally:
-        await db.close()
 
 
 db_dependency = Annotated[AsyncSession, Depends(get_db)]
@@ -64,7 +65,7 @@ db_dependency = Annotated[AsyncSession, Depends(get_db)]
 
 @app.post("/add_user")
 async def add_user(user: UserBase, db: db_dependency):
-    db_user = User(name=user.name)
+    db_user = User(**user.dict())
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
