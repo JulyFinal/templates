@@ -94,6 +94,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
 async def get_db():
     session = sessionmanager.session()
     if session is None:
@@ -114,7 +115,7 @@ db_dependency = Annotated[AsyncSession, Depends(get_db)]
 
 @app.post("/add_user")
 async def add_user(user: UserBase, db: db_dependency):
-    db_user = User(**user.dict())
+    db_user = User(name=user.name)
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
